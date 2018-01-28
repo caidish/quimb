@@ -71,6 +71,17 @@ def get_slepc(comm=None):
 #                               PETSc FUNCTIONS                               #
 # --------------------------------------------------------------------------- #
 
+
+# class ShiftLinearOperator(sp.linalg.LinearOperator):
+
+#     def __init__(self, shift, dtype, shape):
+#         self.shift = shift
+#         super().__init__(dtype=dtype, shape=shape)
+
+#     def _matvec(self, vecs):
+#         return self.shift * vecs
+
+
 class PetscLinearOperatorContext:
     def __init__(self, lo):
         self.lo = lo
@@ -78,6 +89,13 @@ class PetscLinearOperatorContext:
 
     def mult(self, _, x, y):
         y[:] = self.lo.matvec(x[:])
+
+    def getDiagonal(self):
+        pass
+
+    # def shift(self, a):
+    #     shift_lo = ShiftLinearOperator(a, self.lo.dtype, self.lo.shape)
+    #     return PetscLinearOperatorContext(self.lo + shift_lo)
 
 
 def linear_operator_2_petsc_shell(lo, comm=None):
