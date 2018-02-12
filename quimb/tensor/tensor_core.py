@@ -46,6 +46,12 @@ except ImportError:
         raise_cant_find_library_function("opt_einsum", extra_msg)
 
 
+@functools.lru_cache(1)
+def tensorflow_session():
+    import tensorflow as tf
+    return tf.Session()
+
+
 # --------------------------------------------------------------------------- #
 #                                Tensor Funcs                                 #
 # --------------------------------------------------------------------------- #
@@ -122,7 +128,8 @@ def cached_einsum_expr(contract_str, *shapes):
                              memory_limit=2**28, optimize='greedy')
 
 
-def tensor_contract(*tensors, output_inds=None, return_expression=False):
+def tensor_contract(*tensors, output_inds=None, return_expression=False,
+                    backend='numpy'):
     """Efficiently contract multiple tensors, combining their tags.
 
     Parameters
@@ -158,7 +165,19 @@ def tensor_contract(*tensors, output_inds=None, return_expression=False):
     if return_expression:
         return expression
 
-    o_array = expression(*(t.data for t in tensors))
+    if backend == 'numpy':
+        o_array = expression(*(t.data for t in tensors))
+
+    elif backend == 'tensorflow':
+        sess = tensorflow_session()
+        o_array = expression.tensorflow(
+            *(t.data for t in tensors), session=sess)
+
+    elif backend == 'cupy':
+        o_array = expression.cupy(*(t.data for t in tensors))
+
+    elif backend == 'theano':
+        o_array = expression.theano(*(t.data for t in tensors))
 
     if not o_ix:
         if isinstance(o_array, np.ndarray):
